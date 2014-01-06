@@ -3,10 +3,8 @@ import getpass
 import hashlib
 import hmac
 import json
-import urllib.error
-import urllib.request
 import os
-from urllib.parse import (urljoin, quote)
+import requests # Needed
 from argparse import ArgumentParser
 
 BLIH_BASEURL = 'https://blih.epitech.eu'
@@ -59,25 +57,37 @@ class Blih(object):
         data_json = json.dumps(data).encode('utf8')
 
         if not url:
-            url = urljoin(self.baseurl, path)
+            url = self.baseurl + path
 
-        req = urllib.request.Request(url = url, method = method, data = data_json)
-        req.add_header('Content-Type', content_type)
+        headers = {
+            'Content-Type': content_type,
+        }
 
-        try:
-            res = urllib.request.urlopen(req)
-        except urllib.error.HTTPError as e:
-            return (e.code, e.reason, None, None)
-        except Exception as e:
-            print(e)
+        res = requests.request(method, url, data = data_json, headers = headers)
+        res.raise_for_status()
 
-            return (None, None, None, None)
+        return (res.status_code, None, None, res.json())
 
-        data = res.read()
-        data = data.decode('utf8')
-        data = json.loads(data)
+        # if not url:
+        #     url = urljoin(self.baseurl, path)
 
-        return (res.status, res.reason, res.info(), data)
+        # req = urllib.request.Request(url = url, method = method, data = data_json)
+        # req.add_header('Content-Type', content_type)
+
+        # try:
+        #     res = urllib.request.urlopen(req)
+        # except urllib.error.HTTPError as e:
+        #     return (e.code, e.reason, None, None)
+        # except Exception as e:
+        #     print(e)
+
+        #     return (None, None, None, None)
+
+        # data = res.read()
+        # data = data.decode('utf8')
+        # data = json.loads(data)
+
+        # return (res.status, res.reason, res.info(), data)
 
     def safe_request(self, **kwargs):
         (status, reason, info, res) = self.request(**kwargs)
@@ -118,7 +128,7 @@ class Blih(object):
         with open(filename, 'r') as f:
             data = f.read()
 
-        return quote(data.strip('\n'))
+        return data.strip('\n')
 
     def sshkey_upload(self, filename):
         data = {'sshkey': self.sshkey_get(filename)}
