@@ -68,27 +68,6 @@ class Blih(object):
 
         return (res.status_code, None, None, res.json())
 
-        # if not url:
-        #     url = urljoin(self.baseurl, path)
-
-        # req = urllib.request.Request(url = url, method = method, data = data_json)
-        # req.add_header('Content-Type', content_type)
-
-        # try:
-        #     res = urllib.request.urlopen(req)
-        # except urllib.error.HTTPError as e:
-        #     return (e.code, e.reason, None, None)
-        # except Exception as e:
-        #     print(e)
-
-        #     return (None, None, None, None)
-
-        # data = res.read()
-        # data = data.decode('utf8')
-        # data = json.loads(data)
-
-        # return (res.status, res.reason, res.info(), data)
-
     def safe_request(self, **kwargs):
         (status, reason, info, res) = self.request(**kwargs)
         if status != 200:
