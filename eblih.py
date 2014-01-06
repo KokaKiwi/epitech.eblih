@@ -5,11 +5,11 @@ import hmac
 import json
 import urllib.error
 import urllib.request
-from urllib.parse import urljoin
+import os
+from urllib.parse import (urljoin, quote)
 from argparse import ArgumentParser
 
 BLIH_BASEURL = 'https://blih.epitech.eu'
-BLIH_BASEURL = 'https://kokakiwi.net'
 HASH_ALGORITHM = 'sha512'
 
 class Blih(object):
@@ -28,8 +28,7 @@ class Blih(object):
 
     def gen_token(self, password = None):
         if not password:
-            # password = getpass.getpass('Enter your UNIX password: ')
-            password = 'hello'
+            password = getpass.getpass('Enter your UNIX password: ')
 
         m = hashlib.new(HASH_ALGORITHM)
         m.update(password.encode('utf8'))
@@ -74,20 +73,229 @@ class Blih(object):
 
             return (None, None, None, None)
 
-        return (res.status, res.reason, res.info(), res.read())
+        data = res.read()
+        data = data.decode('utf8')
+        data = json.loads(data)
+
+        return (res.status, res.reason, res.info(), data)
+
+    def safe_request(self, **kwargs):
+        (status, reason, info, res) = self.request(**kwargs)
+        if status != 200:
+            if status == 404:
+                print('No data')
+                return None
+            else:
+                print(status, reason)
+                return None
+        return res
+
+    # Repositories methods
+    def repo_create(self, name, ty = 'git', desc = None):
+        data = {'name': name, 'type': ty}
+        if desc is not None:
+            data['description'] = desc
+        return self.safe_request(path  ='/user/repositories', method = 'POST', data = data)
+
+    def repo_list(self):
+        return self.safe_request(path = '/user/repositories')
+
+    def repo_delete(self, name):
+        return self.safe_request(path = '/user/repositories/{name:s}'.format(name = name), method = 'DELETE')
+
+    def repo_info(self, name):
+        return self.safe_request(path = '/user/repositories/{name:s}'.format(name = name))
+
+    def repo_setacl(self, name, username, acl):
+        data = {'user': username, 'acl': acl}
+        return self.safe_request(path = '/user/repositories/{name:s}/acl'.format(name = name), method = 'POST')
+
+    def repo_getacl(self, name):
+        return self.safe_request(path = '/user/repositories/{name:s}/acl'.format(name = name))
+
+    # SSH keys methods
+    def sshkey_get(self, filename):
+        with open(filename, 'r') as f:
+            data = f.read()
+
+        return quote(data.strip('\n'))
+
+    def sshkey_upload(self, filename):
+        data = {'sshkey': self.sshkey_get(filename)}
+        return self.safe_request(path = '/user/sshkey', method = 'POST', data = data)
+
+    def sshkey_delete(self, name):
+        return self.safe_request(path = '/user/sshkey/{key:s}'.format(key = name), method = 'DELETE')
+
+    def sshkey_list(self):
+        return self.safe_request(path = '/user/sshkey')
+
+class RepositoryCommand(object):
+    name = 'repository'
+
+    def config_create(self, parser):
+        parser.add_argument('repo_name', metavar = 'NAME')
+        parser.add_argument('--type', dest = 'repo_type', default = 'git')
+        parser.add_argument('--desc', dest = 'repo_desc', default = None)
+
+    def create(self, args, blih):
+        '''
+            Create a repository.
+        '''
+        res = blih.repo_create(args.repo_name, type = args.repo_type, desc = args.repo_desc)
+        if res is not None:
+            print(res['message'])
+
+    def list(self, args, blih):
+        '''
+            List the repositories.
+        '''
+        res = blih.repo_list()
+        if res is not None:
+            for (name, repo) in res['repositories'].items():
+                print('{name:s}'.format(name = name, url = repo['url']))
+
+    def config_delete(self, parser):
+        parser.add_argument('repo_name', metavar = 'name')
+
+    def delete(self, args, blih):
+        '''
+            Delete a repository.
+        '''
+        res = blih.repo_delete(args.repo_name)
+        if res is not None:
+            print(res['message'])
+
+    def config_info(self, parser):
+        parser.add_argument('repo_name', metavar = 'name')
+
+    def info(self, args, blih):
+        '''
+            Get info about a repository.
+        '''
+        res = blih.repo_info(args.repo_name)
+        if res is not None:
+            print(res['message'])
+
+    def config_setacl(self, parser):
+        parser.add_argument('repo_name', metavar = 'name')
+        parser.add_argument('username')
+        parser.add_argument('acl')
+
+    def setacl(self, args, blih):
+        '''
+            Set ACL for a repository.
+        '''
+        res = blih.repo_setacl(args.repo_name, args.username, args.acl)
+        if res is not None:
+            print(res['message'])
+
+    def config_getacl(self, parser):
+        parser.add_argument('repo_name', metavar = 'name')
+
+    def getacl(self, args, blih):
+        '''
+            Get ACL for a repository.
+        '''
+        res = blih.repo_getacl(args.repo_name)
+        if res is not None:
+            for (name, acl) in res.items():
+                print('{name:s}: {acl:s}'.format(name = name, acl = acl))
+
+class SSHKeyCommand(object):
+    name = 'sshkey'
+
+    def config_upload(self, parser):
+        default_filename = os.path.join(os.getenv('HOME'), '.ssh', 'id_rsa.pub')
+        parser.add_argument('filename', nargs = '?', default = default_filename)
+
+    def upload(self, args, blih):
+        '''
+            Upload SSH key.
+        '''
+        res = blih.sshkey_upload(args.filename)
+        if res is not None:
+            print(res['message'])
+
+    def list(self, args, blih):
+        '''
+            List SSH keys.
+        '''
+        res = blih.sshkey_list()
+        if res is not None:
+            for (name, key) in res.items():
+                print('{name:s}: {key:s}'.format(name = name, key = key))
+
+    def config_delete(self, parser):
+        parser.add_argument('key_name', metavar = 'name')
+
+    def delete(self, args, blih):
+        '''
+            Delete SSH key.
+        '''
+        res = blih.sshkey_delete(args.key_name)
+        if res is not None:
+            print(res['message'])
+
+def get_methods(o):
+    methods = dir(o)
+    methods = [method for method in methods if not method.startswith('__')]
+    methods = [method for method in methods if callable(getattr(o, method))]
+
+    return methods
+
+COMMANDS = [
+    RepositoryCommand(),
+    SSHKeyCommand(),
+]
 
 parser = ArgumentParser()
 parser.add_argument('-u', '--user', default = None, help = 'Run as user(default=current Linux user).')
 parser.add_argument('-s', '--sync', dest = 'async', action = 'store_false', default = True, help = 'Synchronous mode(default=false).')
 parser.add_argument('-v', '--verbose', action = 'store_true', default = False, help = 'Verbose output(default=false).')
 
+subparsers = parser.add_subparsers(dest = 'command')
+
+for command in COMMANDS:
+    methods = get_methods(command)
+
+    subcommands = []
+    configcommands = []
+    for method in get_methods(command):
+        if method.startswith('config_'):
+            configcommands.append(method)
+        else:
+            subcommands.append(method)
+
+    subparser = subparsers.add_parser(command.name, help = command.__doc__)
+    command.parser = subparser
+
+    subsubparsers = subparser.add_subparsers(dest = 'subcommand')
+    for subcommand in subcommands:
+        method = getattr(command, subcommand)
+        subsubparser = subsubparsers.add_parser(subcommand, help = method.__doc__)
+        if 'config_{}'.format(subcommand) in configcommands:
+            getattr(command, 'config_{}'.format(subcommand))(subsubparser)
+
 if __name__ == '__main__':
     args = parser.parse_args()
+    method = None
+
+    if args.command is None:
+        parser.print_help()
+        exit(1)
+
+    for command in COMMANDS:
+        if command.name == args.command:
+            if args.subcommand is None:
+                command.parser.print_help()
+                exit(1)
+            method = getattr(command, args.subcommand)
+
     blih = Blih(
         user = args.user,
         async = args.async,
         verbose = args.verbose,
     )
-
-    result = blih.request(path = '/user/repositories')
-    print(result)
+    if method is not None:
+        method(args, blih)
