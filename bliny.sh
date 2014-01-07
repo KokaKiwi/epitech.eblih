@@ -4,7 +4,7 @@
 PYTHON=${PYTHON:-$(which python)}
 
 # Vars
-_eblih_path="./eblih.py"
+_eblih_path=$(which eblih)
 _user="${USER}"
 
 # Constants
@@ -21,6 +21,7 @@ show_help() {
     show_usage
     echo
     echo "Commands:"
+    echo "  bootstrap   -   Bootstrap git configuration."
     echo "  create      -   Create a repository and import it."
     echo "  import      -   Import a repository."
 }
@@ -36,6 +37,37 @@ fn_exists() {
 # echo "Full repo: ${repo_full}"
 
 # Commands
+bliny_bootstrap() {
+    local key_path="$1"
+
+    if [ -z "${key_path}" ]; then
+        key_path="${HOME}/.ssh/id_rsa"
+    fi
+
+    echo "This command will bootstrap your git configuration."
+    echo "It means that it will create a SSH key and upload it to the BLIH server."
+    echo "Then, you'll be able to create/import repositories."
+    echo "Warning: It'll create a key at ${key_path}"
+
+    echo -n "Do you want to continue? [Y/n] "
+    read cont
+
+    if [ -z "$cont" ]; then
+        cont="Y"
+    fi
+
+    if [ "$cont" != "Y" -a "$cont" != "y" ]; then
+        return
+    fi
+
+    echo "Generating key..."
+    echo "Protip: You should set a secure password, anyone which has access to this key can clone/push to your repositories!"
+    ssh-keygen -f ${key_path}
+
+    echo "Uploading key..."
+    ${PYTHON} ${_eblih_path} -u ${_user} sshkey upload ${key_path}
+}
+
 bliny_create() {
     local repo_name="$1"
     local repo_dest="$2"
@@ -52,8 +84,8 @@ bliny_create() {
     fi
 
     echo "Creating repository on server..."
-    ${PYTHON} ${_eblih_path} repository create ${repo_name} > /dev/null 2>&1
-    ${PYTHON} ${_eblih_path} repository setacl ${repo_name} ${MOULINETTE} r > /dev/null 2>&1
+    ${PYTHON} ${_eblih_path} -u ${_user} repository create ${repo_name} > /dev/null 2>&1
+    ${PYTHON} ${_eblih_path} -u ${_user} repository setacl ${repo_name} ${MOULINETTE} r > /dev/null 2>&1
 
     echo "Cloning repository..."
     git clone ${_user}@${GIT_HOST}:/${_user}/${repo_name} ${repo_dest} > /dev/null 2>&1
