@@ -4,8 +4,9 @@
 PYTHON=${PYTHON:-$(which python)}
 
 # Vars
-_eblih_path=$(which eblih)
+_eblih_path=$(which eblih 2> /dev/null)
 _user="${USER}"
+_use_ssh_agent=1
 
 # Constants
 GIT_HOST="git.epitech.eu"
@@ -14,11 +15,19 @@ MOULINETTE="ramassage-tek"
 # Utility functions
 _script=$0
 show_usage() {
-    echo "Usage: ${_script} <command> [args...]"
+    echo "Usage: ${_script} [options] <command> [args...]"
 }
 
 show_help() {
     show_usage
+
+    echo
+    echo "Options:"
+    echo "  -e PATH     -   Set eblih executable to PATH"
+    echo "  -h          -   Show this help and exit"
+    echo "  -u USER     -   Run commands as USER"
+    echo "  -n          -   Do not use SSH agent"
+
     echo
     echo "Commands:"
     echo "  bootstrap   -   Bootstrap git configuration."
@@ -30,11 +39,14 @@ fn_exists() {
     type -t $1 | grep -q 'function'
 }
 
-# local repo_full="${repo_name}"
-# if [[ "${repo_full}" != */* ]]; then
-#     repo_full="${_user}/${repo_full}"
-# fi
-# echo "Full repo: ${repo_full}"
+# Internal functions
+_bliny_check_ssh() {
+    if [ -z "${SSH_AGENT_PID}" -a ${_use_ssh_agent} -eq 1 ]; then
+        echo "Starting SSH agent..."
+        eval $(ssh-agent)
+        ssh-add
+    fi
+}
 
 # Commands
 bliny_bootstrap() {
@@ -84,11 +96,11 @@ bliny_create() {
     fi
 
     echo "Creating repository on server..."
-    ${PYTHON} ${_eblih_path} -u ${_user} repository create ${repo_name} > /dev/null 2>&1
-    ${PYTHON} ${_eblih_path} -u ${_user} repository setacl ${repo_name} ${MOULINETTE} r > /dev/null 2>&1
+    ${PYTHON} ${_eblih_path} -u ${_user} repository create ${repo_name}
+    ${PYTHON} ${_eblih_path} -u ${_user} repository setacl ${repo_name} ${MOULINETTE} r
 
     echo "Cloning repository..."
-    git clone ${_user}@${GIT_HOST}:/${_user}/${repo_name} ${repo_dest} > /dev/null 2>&1
+    git clone ${_user}@${GIT_HOST}:/${_user}/${repo_name} ${repo_dest}
 
     echo "Configuring repository..."
     cd ${repo_dest}
@@ -130,7 +142,7 @@ bliny_import() {
 }
 
 # Parse args
-while getopts "he:u:" name; do
+while getopts "he:u:n" name; do
     case $name in
         h)
             show_help
@@ -142,6 +154,9 @@ while getopts "he:u:" name; do
         u)
             _user="${OPTARG}"
             ;;
+        n)
+            _use_ssh_agent=0
+            ;;
     esac
 done
 shift $(($OPTIND - 1))
@@ -151,6 +166,11 @@ _command_fnname="bliny_${_command}"
 shift
 
 _args=$*
+
+if [ -z "${_eblih_path}" ]; then
+    echo "No EBLIH executable found, verify that it exists or indicate with -e argument."
+    exit 1
+fi
 
 if [ -z "${_command}" ]; then
     show_usage
