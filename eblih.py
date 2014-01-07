@@ -97,7 +97,7 @@ class Blih(object):
 
     def repo_setacl(self, name, username, acl):
         data = {'user': username, 'acl': acl}
-        return self.safe_request(path = '/user/repositories/{name:s}/acl'.format(name = name), method = 'POST')
+        return self.safe_request(path = '/user/repositories/{name:s}/acl'.format(name = name), method = 'POST', data = data)
 
     def repo_getacl(self, name):
         return self.safe_request(path = '/user/repositories/{name:s}/acl'.format(name = name))
@@ -131,7 +131,7 @@ class RepositoryCommand(object):
         '''
             Create a repository.
         '''
-        res = blih.repo_create(args.repo_name, type = args.repo_type, desc = args.repo_desc)
+        res = blih.repo_create(args.repo_name, ty = args.repo_type, desc = args.repo_desc)
         if res is not None:
             print(res['message'])
 
