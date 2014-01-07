@@ -14,8 +14,8 @@ If you don't want to install tools in /usr/local, add 'PREFIX=/usr' between 'sud
 If you already have a SSH key, but not named "~/.ssh/id_rsa", don't forget to add it to your SSH agent (ssh-add or other) ;)
 But, in general, it's better to have a key at this path because it's where most of SSH-based programs will looking for a key. :)
 
-How to use BLINY (Bits Low-Interface for Yourself)
-==================================================
+How to use BLINY (Bits Low-Interface for Not Yourself)
+======================================================
 
 Create a repository and init it
 -------------------------------
