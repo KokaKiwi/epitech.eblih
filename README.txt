@@ -31,7 +31,7 @@ Create it and clone it in the path specified:
     cd <path>
 
 Import an existing repository
--------------------
+-----------------------------
 
     bliny import <repository name> [path]
     cd <path specified or repository name>
