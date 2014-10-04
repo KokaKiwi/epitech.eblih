@@ -8,9 +8,12 @@ import requests # Needed
 from argparse import ArgumentParser
 
 try:
-    from urllib.parse import quote
+    from urllib.parse import quote as _quote
 except ImportError:
-    from urllib import quote
+    from urllib import quote as _quote
+
+def quote(*args, **kwargs):
+    return _quote(*args, safe='', **kwargs)
 
 BLIH_BASEURL = 'https://blih.epitech.eu'
 HASH_ALGORITHM = 'sha512'
