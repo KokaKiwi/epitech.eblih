@@ -7,6 +7,11 @@ import os
 import requests # Needed
 from argparse import ArgumentParser
 
+try:
+    from urllib.parse import quote
+except ImportError:
+    from urllib import quote
+
 BLIH_BASEURL = 'https://blih.epitech.eu'
 HASH_ALGORITHM = 'sha512'
 
@@ -90,17 +95,17 @@ class Blih(object):
         return self.safe_request(path = '/user/repositories')
 
     def repo_delete(self, name):
-        return self.safe_request(path = '/user/repositories/{name:s}'.format(name = name), method = 'DELETE')
+        return self.safe_request(path = '/user/repositories/{name:s}'.format(name = quote(name)), method = 'DELETE')
 
     def repo_info(self, name):
-        return self.safe_request(path = '/user/repositories/{name:s}'.format(name = name))
+        return self.safe_request(path = '/user/repositories/{name:s}'.format(name = quote(name)))
 
     def repo_setacl(self, name, username, acl):
         data = {'user': username, 'acl': acl}
-        return self.safe_request(path = '/user/repositories/{name:s}/acl'.format(name = name), method = 'POST', data = data)
+        return self.safe_request(path = '/user/repositories/{name:s}/acl'.format(name = quote(name)), method = 'POST', data = data)
 
     def repo_getacl(self, name):
-        return self.safe_request(path = '/user/repositories/{name:s}/acl'.format(name = name))
+        return self.safe_request(path = '/user/repositories/{name:s}/acl'.format(name = quote(name)))
 
     # SSH keys methods
     def sshkey_get(self, filename):
@@ -114,7 +119,7 @@ class Blih(object):
         return self.safe_request(path = '/user/sshkey', method = 'POST', data = data)
 
     def sshkey_delete(self, name):
-        return self.safe_request(path = '/user/sshkey/{key:s}'.format(key = name), method = 'DELETE')
+        return self.safe_request(path = '/user/sshkey/{key:s}'.format(key = quote(name)), method = 'DELETE')
 
     def sshkey_list(self):
         return self.safe_request(path = '/user/sshkey')
