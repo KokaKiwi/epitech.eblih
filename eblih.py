@@ -74,14 +74,11 @@ class Blih(object):
         return (res.status_code, None, None, res.json())
 
     def safe_request(self, **kwargs):
-        (status, reason, info, res) = self.request(**kwargs)
-        if status != 200:
-            if status == 404:
-                print('No data')
-                return None
-            else:
-                print(status, reason)
-                return None
+        try:
+            (status, reason, info, res) = self.request(**kwargs)
+        except request.exception.HTTPError as e:
+            print('FAIL', kwargs)
+            raise e
         return res
 
     # Repositories methods
