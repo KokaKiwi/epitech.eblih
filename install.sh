@@ -3,11 +3,11 @@
 if [ $UID -ne 0 ]; then
     echo "This script must be run as root!"
     echo "Example:  sudo $0"
-    echo "      or  sudo PREFIX=/usr $0"
+    echo "      or  sudo PREFIX=/usr/local $0"
     exit 1
 fi
 
-PREFIX=${PREFIX:-/usr/local}
+PREFIX=${PREFIX:-/usr}
 bindir=${PREFIX}/bin
 
 echo "Installing dependencies..."
