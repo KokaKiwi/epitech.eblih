@@ -4,7 +4,7 @@ import hashlib
 import hmac
 import json
 import os
-import requests # Needed
+import requests  # Needed
 from argparse import ArgumentParser
 
 try:
@@ -12,14 +12,17 @@ try:
 except ImportError:
     from urllib import quote as _quote
 
+
 def quote(*args, **kwargs):
     return _quote(*args, safe='', **kwargs)
 
 BLIH_BASEURL = 'https://blih.epitech.eu'
 HASH_ALGORITHM = 'sha512'
 
+
 class Blih(object):
-    def __init__(self, baseurl = BLIH_BASEURL, user = None, token = None, async = True, verbose = False):
+
+    def __init__(self, baseurl=BLIH_BASEURL, user=None, token=None, async=True, verbose=False):
         self.baseurl = baseurl
         self.token = token
         self.user = user
@@ -32,7 +35,7 @@ class Blih(object):
         if not self.token:
             self.gen_token()
 
-    def gen_token(self, password = None):
+    def gen_token(self, password=None):
         if not password:
             password = getpass.getpass('Enter your UNIX password: ')
 
@@ -40,14 +43,15 @@ class Blih(object):
         m.update(password.encode('utf8'))
         self.token = m.hexdigest().encode('utf8')
 
-    def sign(self, data = None):
+    def sign(self, data=None):
         m = hmac.new(self.token,
-            msg = self.user.encode('utf8'),
-            digestmod = lambda: hashlib.new(HASH_ALGORITHM)
-        )
+                     msg=self.user.encode('utf8'),
+                     digestmod=lambda: hashlib.new(HASH_ALGORITHM)
+                     )
 
         if data is not None:
-            data_json = json.dumps(data, sort_keys = True, indent = 4, separators = (',', ': '))
+            data_json = json.dumps(
+                data, sort_keys=True, indent=4, separators=(',', ': '))
             m.update(data_json.encode('utf8'))
 
         signed_data = {
@@ -60,7 +64,7 @@ class Blih(object):
 
         return signed_data
 
-    def request(self, path = '/', method = 'GET', content_type = 'application/json', data = None, url = None):
+    def request(self, path='/', method='GET', content_type='application/json', data=None, url=None):
         data = self.sign(data)
         data_json = json.dumps(data).encode('utf8')
 
@@ -71,7 +75,7 @@ class Blih(object):
             'Content-Type': content_type,
         }
 
-        res = requests.request(method, url, data = data_json, headers = headers)
+        res = requests.request(method, url, data=data_json, headers=headers)
         res.raise_for_status()
 
         return (res.status_code, None, None, res.json())
@@ -85,27 +89,27 @@ class Blih(object):
         return res
 
     # Repositories methods
-    def repo_create(self, name, ty = 'git', desc = None):
+    def repo_create(self, name, ty='git', desc=None):
         data = {'name': name, 'type': ty}
         if desc is not None:
             data['description'] = desc
-        return self.safe_request(path  ='/user/repositories', method = 'POST', data = data)
+        return self.safe_request(path='/user/repositories', method='POST', data=data)
 
     def repo_list(self):
-        return self.safe_request(path = '/user/repositories')
+        return self.safe_request(path='/user/repositories')
 
     def repo_delete(self, name):
-        return self.safe_request(path = '/user/repositories/{name:s}'.format(name = quote(name)), method = 'DELETE')
+        return self.safe_request(path='/user/repositories/{name:s}'.format(name=quote(name)), method='DELETE')
 
     def repo_info(self, name):
-        return self.safe_request(path = '/user/repositories/{name:s}'.format(name = quote(name)))
+        return self.safe_request(path='/user/repositories/{name:s}'.format(name=quote(name)))
 
     def repo_setacl(self, name, username, acl):
         data = {'user': username, 'acl': acl}
-        return self.safe_request(path = '/user/repositories/{name:s}/acl'.format(name = quote(name)), method = 'POST', data = data)
+        return self.safe_request(path='/user/repositories/{name:s}/acl'.format(name=quote(name)), method='POST', data=data)
 
     def repo_getacl(self, name):
-        return self.safe_request(path = '/user/repositories/{name:s}/acl'.format(name = quote(name)))
+        return self.safe_request(path='/user/repositories/{name:s}/acl'.format(name=quote(name)))
 
     # SSH keys methods
     def sshkey_get(self, filename):
@@ -116,27 +120,29 @@ class Blih(object):
 
     def sshkey_upload(self, filename):
         data = {'sshkey': self.sshkey_get(filename)}
-        return self.safe_request(path = '/user/sshkey', method = 'POST', data = data)
+        return self.safe_request(path='/user/sshkey', method='POST', data=data)
 
     def sshkey_delete(self, name):
-        return self.safe_request(path = '/user/sshkey/{key:s}'.format(key = quote(name)), method = 'DELETE')
+        return self.safe_request(path='/user/sshkey/{key:s}'.format(key=quote(name)), method='DELETE')
 
     def sshkey_list(self):
-        return self.safe_request(path = '/user/sshkey')
+        return self.safe_request(path='/user/sshkey')
+
 
 class RepositoryCommand(object):
     name = 'repository'
 
     def config_create(self, parser):
-        parser.add_argument('repo_name', metavar = 'NAME')
-        parser.add_argument('--type', dest = 'repo_type', default = 'git')
-        parser.add_argument('--desc', dest = 'repo_desc', default = None)
+        parser.add_argument('repo_name', metavar='NAME')
+        parser.add_argument('--type', dest='repo_type', default='git')
+        parser.add_argument('--desc', dest='repo_desc', default=None)
 
     def create(self, args, blih):
         '''
             Create a repository.
         '''
-        res = blih.repo_create(args.repo_name, ty = args.repo_type, desc = args.repo_desc)
+        res = blih.repo_create(
+            args.repo_name, ty=args.repo_type, desc=args.repo_desc)
         if res is not None:
             print(res['message'])
 
@@ -147,10 +153,10 @@ class RepositoryCommand(object):
         res = blih.repo_list()
         if res is not None:
             for (name, repo) in res['repositories'].items():
-                print('{name:s}'.format(name = name, url = repo['url']))
+                print('{name:s}'.format(name=name, url=repo['url']))
 
     def config_delete(self, parser):
-        parser.add_argument('repo_name', metavar = 'name')
+        parser.add_argument('repo_name', metavar='name')
 
     def delete(self, args, blih):
         '''
@@ -161,7 +167,7 @@ class RepositoryCommand(object):
             print(res['message'])
 
     def config_info(self, parser):
-        parser.add_argument('repo_name', metavar = 'name')
+        parser.add_argument('repo_name', metavar='name')
 
     def info(self, args, blih):
         '''
@@ -172,7 +178,7 @@ class RepositoryCommand(object):
             print(res['message'])
 
     def config_setacl(self, parser):
-        parser.add_argument('repo_name', metavar = 'name')
+        parser.add_argument('repo_name', metavar='name')
         parser.add_argument('username')
         parser.add_argument('acl')
 
@@ -185,7 +191,7 @@ class RepositoryCommand(object):
             print(res['message'])
 
     def config_getacl(self, parser):
-        parser.add_argument('repo_name', metavar = 'name')
+        parser.add_argument('repo_name', metavar='name')
 
     def getacl(self, args, blih):
         '''
@@ -194,14 +200,16 @@ class RepositoryCommand(object):
         res = blih.repo_getacl(args.repo_name)
         if res is not None:
             for (name, acl) in res.items():
-                print('{name:s}: {acl:s}'.format(name = name, acl = acl))
+                print('{name:s}: {acl:s}'.format(name=name, acl=acl))
+
 
 class SSHKeyCommand(object):
     name = 'sshkey'
 
     def config_upload(self, parser):
-        default_filename = os.path.join(os.getenv('HOME'), '.ssh', 'id_rsa.pub')
-        parser.add_argument('filename', nargs = '?', default = default_filename)
+        default_filename = os.path.join(
+            os.getenv('HOME'), '.ssh', 'id_rsa.pub')
+        parser.add_argument('filename', nargs='?', default=default_filename)
 
     def upload(self, args, blih):
         '''
@@ -218,10 +226,10 @@ class SSHKeyCommand(object):
         res = blih.sshkey_list()
         if res is not None:
             for (name, key) in res.items():
-                print('{name:s}: {key:s}'.format(name = name, key = key))
+                print('{name:s}: {key:s}'.format(name=name, key=key))
 
     def config_delete(self, parser):
-        parser.add_argument('key_name', metavar = 'name')
+        parser.add_argument('key_name', metavar='name')
 
     def delete(self, args, blih):
         '''
@@ -230,6 +238,7 @@ class SSHKeyCommand(object):
         res = blih.sshkey_delete(args.key_name)
         if res is not None:
             print(res['message'])
+
 
 def get_methods(o):
     methods = dir(o)
@@ -244,11 +253,14 @@ COMMANDS = [
 ]
 
 parser = ArgumentParser()
-parser.add_argument('-u', '--user', default = None, help = 'Run as user(default=current Linux user).')
-parser.add_argument('-s', '--sync', dest = 'async', action = 'store_false', default = True, help = 'Synchronous mode(default=false).')
-parser.add_argument('-v', '--verbose', action = 'store_true', default = False, help = 'Verbose output(default=false).')
+parser.add_argument(
+    '-u', '--user', default=None, help='Run as user(default=current Linux user).')
+parser.add_argument('-s', '--sync', dest='async', action='store_false',
+                    default=True, help='Synchronous mode(default=false).')
+parser.add_argument('-v', '--verbose', action='store_true',
+                    default=False, help='Verbose output(default=false).')
 
-subparsers = parser.add_subparsers(dest = 'command')
+subparsers = parser.add_subparsers(dest='command')
 
 for command in COMMANDS:
     methods = get_methods(command)
@@ -261,13 +273,14 @@ for command in COMMANDS:
         else:
             subcommands.append(method)
 
-    subparser = subparsers.add_parser(command.name, help = command.__doc__)
+    subparser = subparsers.add_parser(command.name, help=command.__doc__)
     command.parser = subparser
 
-    subsubparsers = subparser.add_subparsers(dest = 'subcommand')
+    subsubparsers = subparser.add_subparsers(dest='subcommand')
     for subcommand in subcommands:
         method = getattr(command, subcommand)
-        subsubparser = subsubparsers.add_parser(subcommand, help = method.__doc__)
+        subsubparser = subsubparsers.add_parser(
+            subcommand, help=method.__doc__)
         if 'config_{}'.format(subcommand) in configcommands:
             getattr(command, 'config_{}'.format(subcommand))(subsubparser)
 
@@ -287,9 +300,9 @@ if __name__ == '__main__':
             method = getattr(command, args.subcommand)
 
     blih = Blih(
-        user = args.user,
-        async = args.async,
-        verbose = args.verbose,
+        user=args.user,
+        async=args.async,
+        verbose=args.verbose,
     )
     if method is not None:
         method(args, blih)
