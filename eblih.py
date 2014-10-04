@@ -76,7 +76,7 @@ class Blih(object):
     def safe_request(self, **kwargs):
         try:
             (status, reason, info, res) = self.request(**kwargs)
-        except requests.exception.HTTPError as e:
+        except requests.exceptions.HTTPError as e:
             print('FAIL', kwargs)
             raise e
         return res
