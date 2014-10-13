@@ -16,7 +16,9 @@ except ImportError:
 def quote(*args, **kwargs):
     return _quote(*args, safe='', **kwargs)
 
+BLIH_VERSION = '1.7'
 BLIH_BASEURL = 'https://blih.epitech.eu'
+BLIH_USERAGENT = 'blih-%s' % (BLIH_VERSION)
 HASH_ALGORITHM = 'sha512'
 
 
@@ -73,6 +75,7 @@ class Blih(object):
 
         headers = {
             'Content-Type': content_type,
+            'User-Agent': BLIH_USERAGENT,
         }
 
         res = requests.request(method, url, data=data_json, headers=headers)
