@@ -7,6 +7,7 @@ import os
 import requests  # DEP
 import keyring   # DEP
 from argparse import ArgumentParser
+from requests.exceptions import HTTPError
 
 try:
     from urllib.parse import quote as _quote
@@ -61,6 +62,9 @@ class Eblih(object):
         self.token = token.encode('utf8')
         return self.token
 
+    def reset_token(self):
+        keyring.delete_password(KEYRING_SERVICE_NAME, KEYRING_TOKEN_KEY_NAME)
+
     def sign(self, data=None):
         m = hmac.new(self.token,
                      msg=self.user.encode('utf8'),
@@ -102,9 +106,17 @@ class Eblih(object):
     def safe_request(self, **kwargs):
         try:
             (status, reason, info, res) = self.request(**kwargs)
-        except requests.exceptions.HTTPError as e:
-            print('FAIL', kwargs)
-            raise e
+        except HTTPError as e:
+            res = e.response
+            data = res.json()
+
+            if res.status_code == 401 and data.get('error', None) == 'Bad token':
+                print('Bad login, try again.')
+                self.reset_token()
+                self.gen_token()
+                return self.safe_request(**kwargs)
+            else:
+                raise e
         return res
 
     # Repositories methods
@@ -284,7 +296,7 @@ class ConfigCommand(object):
         '''
             Reset used login token.
         '''
-        keyring.delete_password(KEYRING_SERVICE_NAME, KEYRING_TOKEN_KEY_NAME)
+        blih.reset_token()
         print('Done.')
 
 
