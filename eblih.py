@@ -42,7 +42,8 @@ class Eblih(object):
 
     def gen_token(self, password=None):
         if password is None:
-            token = keyring.get_password(KEYRING_SERVICE_NAME, KEYRING_TOKEN_KEY_NAME)
+            token = keyring.get_password(
+                KEYRING_SERVICE_NAME, KEYRING_TOKEN_KEY_NAME)
 
             if token is not None:
                 self.token = token.encode('utf8')
@@ -54,7 +55,8 @@ class Eblih(object):
         m.update(password.encode('utf8'))
 
         token = m.hexdigest()
-        keyring.set_password(KEYRING_SERVICE_NAME, KEYRING_TOKEN_KEY_NAME, token)
+        keyring.set_password(
+            KEYRING_SERVICE_NAME, KEYRING_TOKEN_KEY_NAME, token)
 
         self.token = token.encode('utf8')
         return self.token
@@ -257,6 +259,23 @@ class SSHKeyCommand(object):
             print(res['message'])
 
 
+class ConfigCommand(object):
+    name = 'config'
+
+    def token(self, args, blih):
+        '''
+            Print used login token.
+        '''
+        print(blih.token.decode('utf8'))
+
+    def reset_token(self, args, blih):
+        '''
+            Reset used login token.
+        '''
+        keyring.delete_password(KEYRING_SERVICE_NAME, KEYRING_TOKEN_KEY_NAME)
+        print('Done.')
+
+
 def get_methods(o):
     methods = dir(o)
     methods = [method for method in methods if not method.startswith('__')]
@@ -267,6 +286,7 @@ def get_methods(o):
 COMMANDS = [
     RepositoryCommand(),
     SSHKeyCommand(),
+    ConfigCommand(),
 ]
 
 parser = ArgumentParser()
@@ -276,6 +296,7 @@ parser.add_argument('-s', '--sync', dest='async', action='store_false',
                     default=True, help='Synchronous mode(default=false).')
 parser.add_argument('-v', '--verbose', action='store_true',
                     default=False, help='Verbose output(default=false).')
+parser.add_argument('-t', '--token', default=None, help='Specify login token.')
 
 subparsers = parser.add_subparsers(dest='command')
 
@@ -320,6 +341,7 @@ if __name__ == '__main__':
         user=args.user,
         async=args.async,
         verbose=args.verbose,
+        token=args.token,
     )
     if method is not None:
         method(args, blih)
