@@ -11,6 +11,7 @@ PREFIX=${PREFIX:-/usr}
 bindir=${PREFIX}/bin
 
 echo "Installing dependencies..."
+easy_install pip >/dev/null 2>&1
 pip install -r requirements.txt > /dev/null 2>&1
 
 echo "Installing tools..."
