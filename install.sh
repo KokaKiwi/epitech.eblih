@@ -10,14 +10,22 @@ fi
 PREFIX=${PREFIX:-/usr}
 bindir=${PREFIX}/bin
 
-echo "Installing dependencies..."
-easy_install pip >/dev/null 2>&1
-pip install -r requirements.txt > /dev/null 2>&1
+LOGFILE="install.log"
 
-echo "Installing tools..."
-install -Dm 0755 eblih.py ${bindir}/eblih > /dev/null 2>&1
-install -Dm 0755 bliny.sh ${bindir}/bliny > /dev/null 2>&1
+log() {
+    echo $* | tee -a ${LOGFILE}
+}
 
-echo "Installation successful!"
+echo >>install.log
+
+log "Installing dependencies..."
+easy_install pip >>install.log 2>&1
+pip install -r requirements.txt >>install.log 2>&1
+
+log "Installing tools..."
+install -Dm 0755 eblih.py ${bindir}/eblih >>install.log 2>&1
+install -Dm 0755 bliny.sh ${bindir}/bliny >>install.log 2>&1
+
+log "Installation successful!"
 echo "Now type:"
 echo "  bliny bootstrap # Only if you haven't yet a SSH key."
