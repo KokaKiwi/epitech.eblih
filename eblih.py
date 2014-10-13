@@ -299,7 +299,6 @@ class ConfigCommand(object):
         blih.reset_token()
         print('Done.')
 
-
 def get_methods(o):
     methods = dir(o)
     methods = [method for method in methods if not method.startswith('__')]
@@ -330,13 +329,14 @@ for command in COMMANDS:
     subcommands = []
     configcommands = []
     for method in get_methods(command):
-        if method.startswith('config_'):
+        if method.startswith('config_') or method == 'config':
             configcommands.append(method)
         else:
             subcommands.append(method)
 
     subparser = subparsers.add_parser(command.name, help=command.__doc__)
     command.parser = subparser
+    command.main_parser = parser
 
     subsubparsers = subparser.add_subparsers(dest='subcommand')
     for subcommand in subcommands:
@@ -346,20 +346,23 @@ for command in COMMANDS:
         if 'config_{}'.format(subcommand) in configcommands:
             getattr(command, 'config_{}'.format(subcommand))(subsubparser)
 
-if __name__ == '__main__':
-    args = parser.parse_args()
+def main(args):
     method = None
 
     if args.command is None:
         parser.print_help()
-        exit(1)
+        return
 
     for command in COMMANDS:
         if command.name == args.command:
             if args.subcommand is None:
-                command.parser.print_help()
-                exit(1)
-            method = getattr(command, args.subcommand)
+                if not hasattr(command, '_root'):
+                    command.parser.print_help()
+                    exit(1)
+                else:
+                    method = getattr(command, '_root')
+            else:
+                method = getattr(command, args.subcommand)
 
     blih = Eblih(
         user=args.user,
@@ -369,3 +372,6 @@ if __name__ == '__main__':
     )
     if method is not None:
         method(args, blih)
+
+if __name__ == '__main__':
+    main(parser.parse_args())
