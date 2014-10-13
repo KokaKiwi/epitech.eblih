@@ -22,7 +22,7 @@ BLIH_USERAGENT = 'blih-%s' % (BLIH_VERSION)
 HASH_ALGORITHM = 'sha512'
 
 
-class Blih(object):
+class Eblih(object):
 
     def __init__(self, baseurl=BLIH_BASEURL, user=None, token=None, async=True, verbose=False):
         self.baseurl = baseurl
@@ -302,7 +302,7 @@ if __name__ == '__main__':
                 exit(1)
             method = getattr(command, args.subcommand)
 
-    blih = Blih(
+    blih = Eblih(
         user=args.user,
         async=args.async,
         verbose=args.verbose,
