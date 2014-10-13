@@ -221,6 +221,18 @@ class RepositoryCommand(object):
             for (name, acl) in res.items():
                 print('{name:s}: {acl:s}'.format(name=name, acl=acl))
 
+    def config_delacl(self, parser):
+        parser.add_argument('repo_name', metavar='name')
+        parser.add_argument('username')
+
+    def delacl(self, args, blih):
+        '''
+            Delete an ACL entry for a repository.
+        '''
+        res = blih.repo_setacl(args.repo_name, args.username, '')
+        if res is not None:
+            print(res['message'])
+
 
 class SSHKeyCommand(object):
     name = 'sshkey'
