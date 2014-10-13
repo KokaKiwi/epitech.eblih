@@ -4,7 +4,8 @@ import hashlib
 import hmac
 import json
 import os
-import requests  # Needed
+import requests  # DEP
+import keyring   # DEP
 from argparse import ArgumentParser
 
 try:
@@ -20,6 +21,8 @@ BLIH_VERSION = '1.7'
 BLIH_BASEURL = 'https://blih.epitech.eu'
 BLIH_USERAGENT = 'blih-%s' % (BLIH_VERSION)
 HASH_ALGORITHM = 'sha512'
+KEYRING_SERVICE_NAME = 'eblih'
+KEYRING_TOKEN_KEY_NAME = 'blih-token'
 
 
 class Eblih(object):
@@ -38,12 +41,23 @@ class Eblih(object):
             self.gen_token()
 
     def gen_token(self, password=None):
-        if not password:
+        if password is None:
+            token = keyring.get_password(KEYRING_SERVICE_NAME, KEYRING_TOKEN_KEY_NAME)
+
+            if token is not None:
+                self.token = token.encode('utf8')
+                return self.token
+
             password = getpass.getpass('Enter your UNIX password: ')
 
         m = hashlib.new(HASH_ALGORITHM)
         m.update(password.encode('utf8'))
-        self.token = m.hexdigest().encode('utf8')
+
+        token = m.hexdigest()
+        keyring.set_password(KEYRING_SERVICE_NAME, KEYRING_TOKEN_KEY_NAME, token)
+
+        self.token = token.encode('utf8')
+        return self.token
 
     def sign(self, data=None):
         m = hmac.new(self.token,
