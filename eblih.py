@@ -3,6 +3,7 @@ import getpass
 import hashlib
 import hmac
 import json
+import logging
 import os
 import requests  # DEP
 import keyring   # DEP
@@ -24,7 +25,6 @@ BLIH_USERAGENT = 'blih-%s' % (BLIH_VERSION)
 HASH_ALGORITHM = 'sha512'
 KEYRING_SERVICE_NAME = 'eblih'
 KEYRING_TOKEN_KEY_NAME = 'blih-token'
-
 
 class Eblih(object):
 
@@ -108,9 +108,16 @@ class Eblih(object):
             (status, reason, info, res) = self.request(**kwargs)
         except HTTPError as e:
             res = e.response
+
+            if res.status_code == 404:
+                raise e
+
             data = res.json()
 
-            if res.status_code == 401 and data.get('error', None) == 'Bad token':
+            if res.status_code == 400:
+                print('Bad request:', data.get('error'))
+                raise e
+            elif res.status_code == 401 and data.get('error', None) == 'Bad token':
                 print('Bad login, try again.')
                 self.reset_token()
                 self.gen_token()
@@ -124,23 +131,23 @@ class Eblih(object):
         data = {'name': name, 'type': ty}
         if desc is not None:
             data['description'] = desc
-        return self.safe_request(path='/user/repositories', method='POST', data=data)
+        return self.safe_request(path='/repositories', method='POST', data=data)
 
     def repo_list(self):
-        return self.safe_request(path='/user/repositories')
+        return self.safe_request(path='/repositories')
 
     def repo_delete(self, name):
-        return self.safe_request(path='/user/repositories/{name:s}'.format(name=quote(name)), method='DELETE')
+        return self.safe_request(path='/repository/{name:s}'.format(name=quote(name)), method='DELETE')
 
     def repo_info(self, name):
-        return self.safe_request(path='/user/repositories/{name:s}'.format(name=quote(name)))
+        return self.safe_request(path='/repository/{name:s}'.format(name=quote(name)))
 
     def repo_setacl(self, name, username, acl):
         data = {'user': username, 'acl': acl}
-        return self.safe_request(path='/user/repositories/{name:s}/acl'.format(name=quote(name)), method='POST', data=data)
+        return self.safe_request(path='/repository/{name:s}/acls'.format(name=quote(name)), method='POST', data=data)
 
     def repo_getacl(self, name):
-        return self.safe_request(path='/user/repositories/{name:s}/acl'.format(name=quote(name)))
+        return self.safe_request(path='/repository/{name:s}/acls'.format(name=quote(name)))
 
     # SSH keys methods
     def sshkey_get(self, filename):
@@ -151,13 +158,16 @@ class Eblih(object):
 
     def sshkey_upload(self, filename):
         data = {'sshkey': self.sshkey_get(filename)}
-        return self.safe_request(path='/user/sshkey', method='POST', data=data)
+        return self.safe_request(path='/sshkeys', method='POST', data=data)
 
     def sshkey_delete(self, name):
-        return self.safe_request(path='/user/sshkey/{key:s}'.format(key=quote(name)), method='DELETE')
+        return self.safe_request(path='/sshkey/{key:s}'.format(key=quote(name)), method='DELETE')
 
     def sshkey_list(self):
-        return self.safe_request(path='/user/sshkey')
+        return self.safe_request(path='/sshkeys')
+
+    def whoami(self):
+        return self.safe_request(path='/whoami')
 
 
 class RepositoryCommand(object):
@@ -299,6 +309,17 @@ class ConfigCommand(object):
         blih.reset_token()
         print('Done.')
 
+class MiscCommand(object):
+    name = 'misc'
+
+    def whoami(self, args, blih):
+        '''
+            Print who am i.
+        '''
+        res = blih.whoami()
+        print(res['message'])
+
+
 def get_methods(o):
     methods = dir(o)
     methods = [method for method in methods if not method.startswith('__')]
@@ -310,6 +331,7 @@ COMMANDS = [
     RepositoryCommand(),
     SSHKeyCommand(),
     ConfigCommand(),
+    MiscCommand(),
 ]
 
 parser = ArgumentParser()
@@ -320,6 +342,7 @@ parser.add_argument('-s', '--sync', dest='async', action='store_false',
 parser.add_argument('-v', '--verbose', action='store_true',
                     default=False, help='Verbose output(default=false).')
 parser.add_argument('-t', '--token', default=None, help='Specify login token.')
+parser.add_argument('-d', '--debug', action='store_true', help='Enable debug output.')
 
 subparsers = parser.add_subparsers(dest='command')
 
@@ -352,6 +375,11 @@ def main(args):
     if args.command is None:
         parser.print_help()
         return
+
+    log_level = None
+    if args.debug:
+        log_level = logging.DEBUG
+    logging.basicConfig(level=log_level)
 
     for command in COMMANDS:
         if command.name == args.command:
