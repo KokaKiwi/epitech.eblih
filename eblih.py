@@ -5,6 +5,7 @@ import hmac
 import json
 import logging
 import os
+import sys
 import requests  # DEP
 from argparse import ArgumentParser
 from requests.exceptions import HTTPError
@@ -126,10 +127,10 @@ class Eblih(object):
             data = res.json()
 
             if res.status_code == 400:
-                print('Bad request:', data.get('error'))
+                print('Bad request:', data.get('error'), file=sys.stderr)
                 raise e
             elif res.status_code == 401 and data.get('error', None) == 'Bad token':
-                print('Bad login, try again.')
+                print('Bad login, try again.', file=sys.stderr)
                 self.reset_token()
                 self.gen_token()
                 return self.safe_request(**kwargs)
