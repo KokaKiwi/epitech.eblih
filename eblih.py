@@ -6,9 +6,14 @@ import json
 import logging
 import os
 import requests  # DEP
-import keyring   # DEP
 from argparse import ArgumentParser
 from requests.exceptions import HTTPError
+
+try:
+    import keyring
+    HAS_KEYRING = True
+except ImportError:
+    HAS_KEYRING = False
 
 try:
     from urllib.parse import quote as _quote
@@ -44,8 +49,11 @@ class Eblih(object):
 
     def gen_token(self, password=None):
         if password is None:
-            token = keyring.get_password(
-                KEYRING_SERVICE_NAME, KEYRING_TOKEN_KEY_NAME)
+            if HAS_KEYRING:
+                token = keyring.get_password(
+                    KEYRING_SERVICE_NAME, KEYRING_TOKEN_KEY_NAME)
+            else:
+                token = None
 
             if token is not None:
                 self.token = token.encode('utf8')
@@ -57,14 +65,16 @@ class Eblih(object):
         m.update(password.encode('utf8'))
 
         token = m.hexdigest()
-        keyring.set_password(
-            KEYRING_SERVICE_NAME, KEYRING_TOKEN_KEY_NAME, token)
+        if HAS_KEYRING:
+            keyring.set_password(
+                KEYRING_SERVICE_NAME, KEYRING_TOKEN_KEY_NAME, token)
 
         self.token = token.encode('utf8')
         return self.token
 
     def reset_token(self):
-        keyring.delete_password(KEYRING_SERVICE_NAME, KEYRING_TOKEN_KEY_NAME)
+        if HAS_KEYRING:
+            keyring.delete_password(KEYRING_SERVICE_NAME, KEYRING_TOKEN_KEY_NAME)
 
     def sign(self, data=None):
         m = hmac.new(self.token,
