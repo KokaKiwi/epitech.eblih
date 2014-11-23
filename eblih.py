@@ -22,6 +22,7 @@ def quote(*args, **kwargs):
 BLIH_VERSION = '1.7'
 BLIH_BASEURL = 'https://blih.epitech.eu'
 BLIH_USERAGENT = 'blih-%s' % (BLIH_VERSION)
+EBLIH_VERSION = '0.1.0'
 HASH_ALGORITHM = 'sha512'
 KEYRING_SERVICE_NAME = 'eblih'
 KEYRING_TOKEN_KEY_NAME = 'blih-token'
@@ -343,6 +344,7 @@ parser.add_argument('-v', '--verbose', action='store_true',
                     default=False, help='Verbose output(default=false).')
 parser.add_argument('-t', '--token', default=None, help='Specify login token.')
 parser.add_argument('-d', '--debug', action='store_true', help='Enable debug output.')
+parser.add_argument('-V', '--version', action='version', version='%(prog)s {version}'.format(version=EBLIH_VERSION))
 
 subparsers = parser.add_subparsers(dest='command')
 
